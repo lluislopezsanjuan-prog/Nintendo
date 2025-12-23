@@ -38,10 +38,15 @@ function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 {games.map(game => (
                     <div key={game.id} className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                        <div className="h-40 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center relative">
-                            {/* Placeholder for game art */}
-                            <span className="text-6xl opacity-20">🎮</span>
-                            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${game.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        <div className="h-48 bg-gray-200 relative overflow-hidden">
+                            {game.image_url ? (
+                                <img src={game.image_url} alt={game.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                                    <span className="text-6xl opacity-20">🎮</span>
+                                </div>
+                            )}
+                            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm backdrop-blur-md bg-white/90 ${game.status === 'available' ? 'text-green-800' : 'text-orange-800'}`}>
                                 {game.status}
                             </div>
                         </div>
