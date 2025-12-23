@@ -7,6 +7,17 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+const pool = require('./db');
+
+// DB Init Check
+(async () => {
+    try {
+        await pool.query("ALTER TABLE games ADD COLUMN IF NOT EXISTS image_url VARCHAR(2048)");
+        console.log("DB: ensure image_url column exists");
+    } catch (e) {
+        console.log("DB Init Skipped/Error:", e.message);
+    }
+})();
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

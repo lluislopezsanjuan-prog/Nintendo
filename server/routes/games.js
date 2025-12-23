@@ -8,7 +8,7 @@ const authenticateToken = require('../middleware/auth');
 // Get all games (optional filter by status)
 router.get('/', async (req, res) => {
     try {
-        const [games] = await pool.query('SELECT games.*, users.username as owner_name FROM games JOIN users ON games.owner_id = users.id');
+        const [games] = await pool.query('SELECT games.id, games.title, games.platform, games.status, games.image_url, games.owner_id, users.username as owner_name FROM games JOIN users ON games.owner_id = users.id');
         res.json(games);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -18,10 +18,10 @@ router.get('/', async (req, res) => {
 // Add a game
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { title, platform } = req.body;
+        const { title, platform, image_url } = req.body;
         const [result] = await pool.query(
-            'INSERT INTO games (title, platform, owner_id) VALUES (?, ?, ?)',
-            [title, platform || 'Nintendo Switch', req.user.id]
+            'INSERT INTO games (title, platform, owner_id, image_url) VALUES (?, ?, ?, ?)',
+            [title, platform || 'Nintendo Switch', req.user.id, image_url || null]
         );
         res.status(201).json({ message: 'Game added', gameId: result.insertId });
     } catch (error) {

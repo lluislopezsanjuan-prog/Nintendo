@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { searchGames } from '../services/rawg';
 
 function MyGames() {
     const [myGames, setMyGames] = useState([]);
@@ -13,6 +14,11 @@ function MyGames() {
     const [users, setUsers] = useState([]);
     const [borrowerId, setBorrowerId] = useState('');
     const [days, setDays] = useState(7);
+
+    // RAWG Search State
+    const [searchResults, setSearchResults] = useState([]);
+    const [imageUrl, setImageUrl] = useState('');
+    const [showResults, setShowResults] = useState(false);
 
     useEffect(() => {
         loadMyGames();
@@ -69,8 +75,10 @@ function MyGames() {
     const handleAddGame = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/games', { title });
+            await api.post('/games', { title, image_url: imageUrl });
             setTitle('');
+            setImageUrl('');
+            setShowResults(false);
             loadMyGames();
         } catch (error) {
             console.error('Error adding game', error);
@@ -111,9 +119,41 @@ function MyGames() {
                             placeholder="Game Title (e.g. Zelda, Mario...)"
                             className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition shadow-sm"
                             value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                            onChange={async (e) => {
+                                setTitle(e.target.value);
+                                if (e.target.value.length > 2) {
+                                    const results = await searchGames(e.target.value);
+                                    setSearchResults(results);
+                                    setShowResults(true);
+                                } else {
+                                    setSearchResults([]);
+                                    setShowResults(false);
+                                }
+                            }}
+                            onBlur={() => setTimeout(() => setShowResults(false), 200)}
+                            onFocus={() => { if (title.length > 2) setShowResults(true); }}
                             required
                         />
+                        {showResults && searchResults.length > 0 && (
+                            <div className="absolute z-10 w-full bg-white mt-1 rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto">
+                                {searchResults.map(game => (
+                                    <div
+                                        key={game.id}
+                                        className="p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3 transition"
+                                        onClick={() => {
+                                            setTitle(game.name);
+                                            setImageUrl(game.background_image);
+                                            setShowResults(false);
+                                        }}
+                                    >
+                                        {game.background_image && (
+                                            <img src={game.background_image} alt={game.name} className="w-10 h-10 object-cover rounded-lg" />
+                                        )}
+                                        <span className="font-medium text-gray-700">{game.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-3 rounded-2xl transition duration-300 shadow-lg whitespace-nowrap">
                         Add Game
@@ -129,29 +169,39 @@ function MyGames() {
                     </div>
                 ) : (
                     myGames.map(game => (
-                        <div key={game.id} className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group">
-                            <div className="p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${game.status === 'available' ? 'bg-green-100' : 'bg-orange-100'}`}>
-                                        {game.status === 'available' ? '✅' : '🤝'}
+                        <div key={game.id} className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
+
+                            {/* Card Image */}
+                            <div className="h-48 w-full relative bg-gray-200 overflow-hidden">
+                                {game.image_url ? (
+                                    <img src={game.image_url} alt={game.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-gray-100 to-gray-200 text-gray-300">
+                                        🎮
                                     </div>
+                                )}
+                                <div className="absolute top-3 right-3">
+                                    <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${game.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                        {game.status}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 flex-grow flex flex-col">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h3 className="text-xl font-bold text-gray-900 leading-tight group-hover:text-red-600 transition line-clamp-2 mb-1">{game.title}</h3>
                                     <button
                                         onClick={() => handleDelete(game.id)}
-                                        className="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-full transition-colors"
-                                        title="Delete game"
+                                        className="text-gray-300 hover:text-red-500 transition-colors ml-2"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                                         </svg>
                                     </button>
                                 </div>
+                                <p className="text-gray-500 text-sm mb-4">{game.platform || 'Nintendo Switch'}</p>
 
-                                <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-red-600 transition truncate">{game.title}</h3>
-                                <p className={`text-sm font-bold uppercase tracking-widest ${game.status === 'available' ? 'text-green-600' : 'text-orange-500'}`}>
-                                    {game.status}
-                                </p>
-
-                                <div className="mt-6 pt-6 border-t border-gray-50">
+                                <div className="mt-auto pt-6 border-t border-gray-50">
                                     {game.status === 'loaned' && (
                                         <button
                                             onClick={() => handleReturn(game.id)}
