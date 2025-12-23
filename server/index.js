@@ -12,10 +12,14 @@ const pool = require('./db');
 // DB Init Check
 (async () => {
     try {
-        await pool.query("ALTER TABLE games ADD COLUMN IF NOT EXISTS image_url VARCHAR(2048)");
+        await pool.query("ALTER TABLE games ADD COLUMN image_url VARCHAR(2048)");
         console.log("DB: ensure image_url column exists");
     } catch (e) {
-        console.log("DB Init Skipped/Error:", e.message);
+        if (e.code === 'ER_DUP_FIELDNAME') {
+            console.log("DB: image_url column already exists");
+        } else {
+            console.log("DB Init Skipped/Error:", e.message);
+        }
     }
 })();
 
